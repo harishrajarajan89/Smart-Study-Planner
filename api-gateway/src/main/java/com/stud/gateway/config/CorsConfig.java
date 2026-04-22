@@ -12,11 +12,8 @@ import java.util.Arrays;
 public class CorsConfig {
 
     @Bean
-<<<<<<< HEAD
-    public CorsWebFilter corsFilter() {
-=======
+
     public CorsWebFilter corsWebFilter() {
->>>>>>> fedb1cb4e86f9e88d2f3cbf831d899388cf5b6b4
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
         config.setAllowedOriginPatterns(Arrays.asList("http://localhost:*", "http://127.0.0.1:*"));
