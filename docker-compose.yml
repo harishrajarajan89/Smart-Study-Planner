@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: stud-postgres
+    environment:
+      POSTGRES_DB: studyplanner
+      POSTGRES_USER: stud
+      POSTGRES_PASSWORD: stud
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: stud-redis
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: stud-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: stud
+      RABBITMQ_DEFAULT_PASS: stud
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+volumes:
+  postgres-data:
