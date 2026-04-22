@@ -1,0 +1,9 @@
+.git
+.gitignore
+.vscode
+logs
+META-INF
+ui-prototypes
+**/target
+**/.DS_Store
+

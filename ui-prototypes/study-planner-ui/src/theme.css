@@ -1,0 +1,46 @@
+:root {
+  --planner-canvas: #0d0d0d;
+  --planner-canvas-elevated: #141414;
+  --planner-panel: rgba(255, 255, 255, 0.06);
+  --planner-panel-strong: rgba(255, 255, 255, 0.1);
+  --planner-panel-soft: rgba(255, 255, 255, 0.04);
+  --planner-border: rgba(255, 255, 255, 0.12);
+  --planner-border-strong: rgba(255, 255, 255, 0.22);
+  --planner-text: #f5f7fa;
+  --planner-text-muted: rgba(245, 247, 250, 0.68);
+  --planner-text-soft: rgba(245, 247, 250, 0.48);
+  --planner-cobalt: #4d7cff;
+  --planner-cobalt-soft: rgba(77, 124, 255, 0.18);
+  --planner-acid: #d2ff3f;
+  --planner-acid-soft: rgba(210, 255, 63, 0.14);
+  --planner-danger: #ff6b6b;
+  --planner-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+  --planner-glow-cobalt: 0 0 0 1px rgba(77, 124, 255, 0.34), 0 0 36px rgba(77, 124, 255, 0.18);
+  --planner-glow-acid: 0 0 0 1px rgba(210, 255, 63, 0.4), 0 0 42px rgba(210, 255, 63, 0.14);
+  --planner-glass-blur: blur(18px);
+  --planner-radius-xl: 32px;
+  --planner-radius-lg: 24px;
+  --planner-radius-md: 18px;
+}
+
+@keyframes plannerPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px rgba(210, 255, 63, 0.18), 0 0 24px rgba(210, 255, 63, 0.08);
+  }
+
+  50% {
+    box-shadow: 0 0 0 1px rgba(210, 255, 63, 0.42), 0 0 46px rgba(210, 255, 63, 0.22);
+  }
+}
+
+@keyframes plannerLiquid {
+  0%,
+  100% {
+    transform: scale(1) translateY(0);
+  }
+
+  50% {
+    transform: scale(1.08) translateY(-2px);
+  }
+}
