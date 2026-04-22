@@ -1,6 +1,7 @@
 import { startTransition, useEffect, useState } from "react";
 import { AnimatePresence, LayoutGroup, MotionConfig, motion } from "framer-motion";
-import { taskApi, Task } from "./api";
+import { plannerApi, taskApi, userApi } from "./api";
+import type { DailyPlan, EnergyProfile } from "./api";
 import "./SmartStudyPlanner.css";
 
 type UITask = {
@@ -349,38 +350,54 @@ export default function SmartStudyPlannerDemo() {
   const [focusFlow, setFocusFlow] = useState(false);
   const [countdown, setCountdown] = useState(25 * 60);
   const [tasks, setTasks] = useState<UITask[]>([]);
+  const [profile, setProfile] = useState<EnergyProfile | null>(null);
+  const [plan, setPlan] = useState<DailyPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [plannerError, setPlannerError] = useState<string | null>(null);
 
-  // Hardcoded user ID for demo - in a real app this would come from authentication
-  const userId = "550e8400-e29b-41d4-a716-446655440000";
+  // Demo user ID aligned with the seeded backend routes
+  const userId = "11111111-1111-1111-1111-111111111111";
 
   useEffect(() => {
-    loadTasks();
+    void loadDashboard();
   }, []);
 
-  const loadTasks = async () => {
+  const mapTasksToUi = (fetchedTasks: Awaited<ReturnType<typeof taskApi.getTasks>>): UITask[] =>
+    fetchedTasks.map((apiTask) => ({
+      id: apiTask.id,
+      title: apiTask.title,
+      course: apiTask.subject,
+      difficulty: apiTask.difficulty,
+      urgency: Math.max(1, Math.min(5, Math.round(apiTask.weight))),
+      energyCost: Math.max(1, Math.min(5, Math.round(apiTask.effortScore / 2))),
+      duration: Math.max(25, Math.round(apiTask.estimatedHours * 60)),
+      status:
+        apiTask.status === "PENDING"
+          ? "Due Soon"
+          : apiTask.progressPercent > 50
+            ? "Deep Work"
+            : "Quick Win",
+    }));
+
+  const loadDashboard = async () => {
     try {
       setLoading(true);
       setError(null);
-      const fetchedTasks = await taskApi.getTasks(userId);
-      // Map API response to UI format
-      const mappedTasks: UITask[] = fetchedTasks.map(apiTask => ({
-        id: apiTask.id,
-        title: apiTask.title,
-        course: apiTask.subject,
-        difficulty: apiTask.difficulty,
-        urgency: Math.max(1, Math.min(5, Math.round(apiTask.weight))), // Convert weight to 1-5 scale
-        energyCost: Math.max(1, Math.min(5, Math.round(apiTask.effortScore / 2))), // Convert effort score
-        duration: Math.round(apiTask.estimatedHours * 60), // Convert hours to minutes
-        status: apiTask.status === 'PENDING' ? 'Due Soon' :
-                apiTask.progressPercent > 50 ? 'Deep Work' : 'Quick Win'
-      }));
-      setTasks(mappedTasks);
+      setPlannerError(null);
+      const [fetchedTasks, fetchedProfile, fetchedPlan] = await Promise.all([
+        taskApi.getTasks(userId),
+        userApi.getEnergyProfile(userId),
+        plannerApi.getTodayPlan(userId),
+      ]);
+      setTasks(mapTasksToUi(fetchedTasks));
+      setProfile(fetchedProfile);
+      setPlan(fetchedPlan);
+      setTiredMode(fetchedPlan.fatigueApplied);
     } catch (err) {
-      console.error('Failed to load tasks:', err);
-      setError('Failed to load tasks. Using sample data.');
-      // Fallback to sample data if API fails
+      console.error("Failed to load dashboard:", err);
+      setError("Failed to reach the live planner. Showing the design prototype with sample tasks.");
+      setPlannerError("Live planner data is temporarily unavailable.");
       setTasks(tasksSeed);
     } finally {
       setLoading(false);
@@ -412,11 +429,31 @@ export default function SmartStudyPlannerDemo() {
     };
   }, [focusFlow]);
 
-  function handleToggleTiredMode() {
+  async function handleToggleTiredMode() {
+    const nextTiredMode = !tiredMode;
     startTransition(() => {
-      setTiredMode((previous) => !previous);
+      setTiredMode(nextTiredMode);
     });
+
+    try {
+      setPlannerError(null);
+      const updatedPlan = await plannerApi.updateFatigue(userId, {
+        tired: nextTiredMode,
+        reportedEnergyLevel: nextTiredMode ? 2 : 4,
+        note: nextTiredMode ? "User enabled tired mode from the planner UI" : "User returned to flow state",
+        timezone: profile?.timezone ?? "Asia/Karachi",
+      });
+      setPlan(updatedPlan);
+    } catch (err) {
+      console.error("Failed to update tired mode:", err);
+      setPlannerError("Could not update fatigue mode on the live planner. The card resort is local only.");
+    }
   }
+
+  const topSession = plan?.sessions[0] ?? null;
+  const plannerSummary = plan
+    ? `${plan.sessions.length} focus block${plan.sessions.length === 1 ? "" : "s"} across ${plan.effectiveHours}h today`
+    : "Connect the planner to see an energy-aware study flow.";
 
   return (
     <MotionConfig transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}>
@@ -442,6 +479,7 @@ export default function SmartStudyPlannerDemo() {
                         <p className="planner-copy">
                         Cards carry visual mass based on difficulty times urgency. When tired mode turns on, the schedule physically slides toward lower-energy wins instead of merely flipping a checkbox.
                         </p>
+                        <p className="planner-copy planner-copy--live">{plannerSummary}</p>
                       </div>
 
                       <button type="button" onClick={() => setFocusFlow(true)} className="planner-action">
@@ -453,8 +491,22 @@ export default function SmartStudyPlannerDemo() {
 
                 <div className="planner-panel planner-panel--soft">
                   <div className="planner-panel__content planner-sidecard">
-                    <p className="planner-eyebrow planner-eyebrow--muted">Now</p>
-                    <p className="planner-sidecard__label">Current top task</p>
+                    <p className="planner-eyebrow planner-eyebrow--muted">Today</p>
+                    <p className="planner-sidecard__label">
+                      {topSession ? "Live focus block from scheduler-engine" : "Current top task"}
+                    </p>
+                    {topSession ? (
+                      <div className="planner-sidecard__summary">
+                        <p className="planner-sidecard__title">{topSession.title}</p>
+                        <p className="planner-sidecard__meta">
+                          {topSession.subject} · {topSession.plannedStart} - {topSession.plannedEnd}
+                        </p>
+                        <p className="planner-sidecard__meta">
+                          {topSession.blockMinutes} min · score {topSession.priorityScore}
+                          {topSession.fatigueAdjusted ? " · fatigue-adjusted" : ""}
+                        </p>
+                      </div>
+                    ) : null}
                     <TaskCard
                       task={focusTask}
                       priority={getPriority(focusTask)}
@@ -472,10 +524,34 @@ export default function SmartStudyPlannerDemo() {
                   <LiquidFatigueToggle tiredMode={tiredMode} onToggle={handleToggleTiredMode} />
 
                   <div className="planner-note">
-                    <p className="planner-eyebrow planner-eyebrow--muted">Re-sort logic</p>
-                    <p className="planner-note__copy">
-                      Awake mode sorts by <strong>difficulty * urgency</strong>. Tired mode subtracts an energy penalty, so quick wins and medium-weight tasks rise while the layout animates into a new order.
-                    </p>
+                    <p className="planner-eyebrow planner-eyebrow--muted">Live profile</p>
+                    {profile ? (
+                      <>
+                        <p className="planner-note__copy">
+                          <strong>{profile.displayName}</strong> studies best from {profile.preferredStartTime} to{" "}
+                          {profile.preferredEndTime}, with a daily target of {profile.dailyStudyHours} hours and a
+                          baseline energy level of {profile.baselineEnergyLevel}/5.
+                        </p>
+                        <p className="planner-note__copy">
+                          Planner timezone: <strong>{profile.timezone}</strong>
+                        </p>
+                      </>
+                    ) : (
+                      <p className="planner-note__copy">
+                        Awake mode sorts by <strong>difficulty * urgency</strong>. Tired mode subtracts an energy
+                        penalty, so quick wins and medium-weight tasks rise while the layout animates into a new order.
+                      </p>
+                    )}
+                    {plannerError ? <p className="planner-note__warning">{plannerError}</p> : null}
+                    {plan?.rationale?.length ? (
+                      <div className="planner-rationale">
+                        {plan.rationale.slice(0, 3).map((item) => (
+                          <p key={item} className="planner-rationale__item">
+                            {item}
+                          </p>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 
@@ -511,7 +587,7 @@ export default function SmartStudyPlannerDemo() {
                           className="planner-error"
                         >
                           <p>{error}</p>
-                          <button onClick={loadTasks} className="planner-action">
+                          <button onClick={() => void loadDashboard()} className="planner-action">
                             Retry
                           </button>
                         </motion.div>

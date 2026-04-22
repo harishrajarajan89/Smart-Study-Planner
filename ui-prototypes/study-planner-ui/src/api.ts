@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:8082';
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || "https://smart-study-planner-production-87f6.up.railway.app"
+).replace(/\/$/, "");
 
 export interface Task {
   id: string;
@@ -18,17 +20,33 @@ export interface Task {
 
 export interface EnergyProfile {
   userId: string;
-  peakEnergyTime: string;
-  lowEnergyTime: string;
-  preferredStudyDuration: number;
-  breakFrequency: number;
+  displayName: string;
+  timezone: string;
+  dailyStudyHours: number;
+  baselineEnergyLevel: number;
+  preferredStartTime: string;
+  preferredEndTime: string;
+}
+
+export interface StudyBlock {
+  taskId: string;
+  subject: string;
+  title: string;
+  blockMinutes: number;
+  plannedStart: string;
+  plannedEnd: string;
+  priorityScore: number;
+  fatigueAdjusted: boolean;
 }
 
 export interface DailyPlan {
-  date: string;
-  tasks: Task[];
-  totalStudyTime: number;
-  recommendedBreaks: number;
+  userId: string;
+  planDate: string;
+  baselineHours: number;
+  effectiveHours: number;
+  fatigueApplied: boolean;
+  sessions: StudyBlock[];
+  rationale: string[];
 }
 
 // Task API
@@ -110,11 +128,19 @@ export const plannerApi = {
     return response.json();
   },
 
-  updateFatigue: async (userId: string, fatigueLevel: number): Promise<DailyPlan> => {
+  updateFatigue: async (
+    userId: string,
+    payload: {
+      tired: boolean;
+      reportedEnergyLevel?: number;
+      note?: string;
+      timezone?: string;
+    },
+  ): Promise<DailyPlan> => {
     const response = await fetch(`${API_BASE_URL}/api/plans/fatigue?userId=${userId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fatigueLevel }),
+      body: JSON.stringify(payload),
     });
     if (!response.ok) throw new Error('Failed to update fatigue');
     return response.json();
