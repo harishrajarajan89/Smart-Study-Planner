@@ -405,7 +405,8 @@ export default function SmartStudyPlannerDemo() {
   };
 
   const orderedTasks = sortTasks(tasks, tiredMode);
-  const focusTask = orderedTasks[0];
+  const focusTask = orderedTasks[0] ?? tasksSeed[0];
+  const hasTasks = orderedTasks.length > 0;
 
   useEffect(() => {
     if (!focusFlow) {
@@ -459,7 +460,7 @@ export default function SmartStudyPlannerDemo() {
     <MotionConfig transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}>
       <div className="planner-shell">
         <AnimatePresence mode="wait">
-          {focusFlow ? (
+          {focusFlow && hasTasks ? (
             <FocusFlow task={focusTask} countdown={countdown} onExit={() => setFocusFlow(false)} />
           ) : (
             <motion.main
@@ -482,7 +483,12 @@ export default function SmartStudyPlannerDemo() {
                         <p className="planner-copy planner-copy--live">{plannerSummary}</p>
                       </div>
 
-                      <button type="button" onClick={() => setFocusFlow(true)} className="planner-action">
+                      <button
+                        type="button"
+                        onClick={() => setFocusFlow(true)}
+                        className="planner-action"
+                        disabled={!hasTasks}
+                      >
                         Enter Focus Flow
                       </button>
                     </div>
@@ -507,14 +513,21 @@ export default function SmartStudyPlannerDemo() {
                         </p>
                       </div>
                     ) : null}
-                    <TaskCard
-                      task={focusTask}
-                      priority={getPriority(focusTask)}
-                      tiredMode={tiredMode}
-                      index={0}
-                      isFocusTarget
-                      compact
-                    />
+                    {hasTasks ? (
+                      <TaskCard
+                        task={focusTask}
+                        priority={getPriority(focusTask)}
+                        tiredMode={tiredMode}
+                        index={0}
+                        isFocusTarget
+                        compact
+                      />
+                    ) : (
+                      <div className="planner-sidecard__summary">
+                        <p className="planner-sidecard__title">Preparing your planner</p>
+                        <p className="planner-sidecard__meta">Tasks and study blocks will appear once the live API responds.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </section>

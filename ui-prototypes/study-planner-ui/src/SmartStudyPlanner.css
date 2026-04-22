@@ -163,6 +163,14 @@
   filter: brightness(1.02);
 }
 
+.planner-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
 .planner-sidecard {
   display: flex;
   flex-direction: column;
