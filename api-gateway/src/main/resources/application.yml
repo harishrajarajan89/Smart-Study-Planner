@@ -8,20 +8,21 @@ spring:
     gateway:
       routes:
         - id: user-service
-          uri: lb://user-service
+          uri: ${USER_SERVICE_URI:lb://user-service}
           predicates:
             - Path=/api/users/**
         - id: task-service
-          uri: lb://task-service
+          uri: ${TASK_SERVICE_URI:lb://task-service}
           predicates:
             - Path=/api/tasks/**
         - id: scheduler-engine
-          uri: lb://scheduler-engine
+          uri: ${SCHEDULER_ENGINE_URI:lb://scheduler-engine}
           predicates:
             - Path=/api/plans/**
 
 eureka:
   client:
+    enabled: ${EUREKA_ENABLED:true}
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka}
 
