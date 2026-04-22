@@ -26,5 +26,3 @@ public class CorsConfig {
         return new CorsFilter(source);
     }
 }
-// dfgdfgfdty ft frdg ftgth cgtthfhbfgcv
-// sfdgsdfc sdf sdf sdb dfgdtgdtg dxfg rf sfdrgdgrf ryhc fgbcxfhbchtyhty fysdrfgsdfg rdrtghrtdhyrt cthg
