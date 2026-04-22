@@ -1,0 +1,26 @@
+FROM maven:3.9.9-eclipse-temurin-21 AS build
+WORKDIR /build
+
+COPY pom.xml pom.xml
+COPY discovery-server/pom.xml discovery-server/pom.xml
+
+RUN mvn -pl discovery-server -am dependency:go-offline -B --no-transfer-progress
+
+COPY discovery-server/src discovery-server/src
+
+RUN mvn -pl discovery-server -am package -DskipTests -B --no-transfer-progress
+
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+
+RUN groupadd --system spring && useradd --system --gid spring spring
+
+COPY --from=build /build/discovery-server/target/discovery-server-0.0.1-SNAPSHOT.jar /app/app.jar
+
+ENV JAVA_OPTS=""
+
+USER spring
+EXPOSE 8761
+
+ENTRYPOINT ["sh", "-c", "java ${JAVA_OPTS} -jar /app/app.jar"]
+
