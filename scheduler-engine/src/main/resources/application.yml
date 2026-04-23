@@ -35,3 +35,10 @@ app:
   fatigue:
     store: memory
     publisher: none
+
+logging:
+  level:
+    root: INFO
+    com.stud: DEBUG
+  file:
+    name: logs/scheduler-engine.log

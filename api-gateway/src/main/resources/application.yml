@@ -31,3 +31,10 @@ management:
     web:
       exposure:
         include: health,info,gateway
+
+logging:
+  level:
+    root: INFO
+    com.stud: DEBUG
+  file:
+    name: logs/api-gateway.log
