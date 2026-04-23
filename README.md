@@ -28,4 +28,4 @@ The Study Planner project is a microservices-based application for managing stud
    ```
 
 ## Known Issues
-> ⚠️ **Scheduler Engine** is currently not working as expected when running as part of the full service group. The service works fine in isolation but fails to integrate correctly with the other services. This is a known issue and will be resolved in a future update.
+>  **Scheduler Engine** is currently not working as expected when running as part of the full service group. The service works fine in isolation but fails to integrate correctly with the other services. This is a known issue and will be resolved in a future update.
