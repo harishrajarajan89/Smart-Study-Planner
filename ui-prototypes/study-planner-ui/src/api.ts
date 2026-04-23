@@ -1,5 +1,5 @@
 const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || "https://smart-study-planner-production-87f6.up.railway.app"
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"
 ).replace(/\/$/, "");
 
 export interface Task {
