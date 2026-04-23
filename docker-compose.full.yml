@@ -1,0 +1,126 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: stud-postgres
+    environment:
+      POSTGRES_DB: studyplanner
+      POSTGRES_USER: stud
+      POSTGRES_PASSWORD: stud
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: stud-redis
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: stud-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: stud
+      RABBITMQ_DEFAULT_PASS: stud
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  discovery-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.discovery-server
+    container_name: stud-discovery
+    ports:
+      - "8761:8761"
+    environment:
+      PORT: 8761
+
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.user-service
+    container_name: stud-user
+    ports:
+      - "8081:8081"
+    environment:
+      PORT: 8081
+      DATABASE_URL: jdbc:postgresql://postgres:5432/studyplanner
+      DATABASE_USERNAME: stud
+      DATABASE_PASSWORD: stud
+      EUREKA_URL: http://discovery-server:8761/eureka
+    depends_on:
+      postgres:
+        condition: service_started
+      discovery-server:
+        condition: service_started
+
+  task-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.task-service
+    container_name: stud-task
+    ports:
+      - "8082:8082"
+    environment:
+      PORT: 8082
+      DATABASE_URL: jdbc:postgresql://postgres:5432/studyplanner
+      DATABASE_USERNAME: stud
+      DATABASE_PASSWORD: stud
+      EUREKA_URL: http://discovery-server:8761/eureka
+    depends_on:
+      postgres:
+        condition: service_started
+      discovery-server:
+        condition: service_started
+
+  scheduler-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile.scheduler-engine
+    container_name: stud-scheduler
+    ports:
+      - "8083:8083"
+    environment:
+      PORT: 8083
+      RABBITMQ_HOST: rabbitmq
+      REDIS_HOST: redis
+      EUREKA_URL: http://discovery-server:8761/eureka
+      APP_FATIGUE_STORE: memory
+      APP_FATIGUE_PUBLISHER: none
+    depends_on:
+      rabbitmq:
+        condition: service_started
+      redis:
+        condition: service_started
+      discovery-server:
+        condition: service_started
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.api-gateway
+    container_name: stud-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+      USER_SERVICE_URI: lb://user-service
+      TASK_SERVICE_URI: lb://task-service
+      SCHEDULER_ENGINE_URI: lb://scheduler-engine
+      EUREKA_URL: http://discovery-server:8761/eureka
+    depends_on:
+      discovery-server:
+        condition: service_started
+      user-service:
+        condition: service_started
+      task-service:
+        condition: service_started
+      scheduler-engine:
+        condition: service_started
+
+volumes:
+  postgres-data:
